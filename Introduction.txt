@@ -1,4 +1,4 @@
-Triliteral is a literate, polyglossal, esoteric, homoiconic, concatenative stack-oriented language inspired by Forth and the *triliteral root* construction common to Semitic languages.
+Triliteral is a literate, polyglossal, esoteric, homoiconic, concatenative, Turing-complete, stack-oriented language inspired by Forth and the *triliteral root* construction common to Semitic languages.
 Triliteral programs can be written in the Arabic, Hebrew or (with some loss of fidelity) Latin scripts, though only one at a time; the script used is determined by the file extension: .<.t><r><l>, .<tet><resh><lamed> or .trl.
 
 A Triliteral program is a sequence of *words*, separated by whitespace and/or punctuation, where each word is derived from a three-consonant *root* designating a *stack*, modified by a four-vowel *stem* designating an *operation*.
@@ -10,3 +10,5 @@ For example, the word *aktub* has root KTB and stem a_u_, 0301 in base 4 (49 in 
 (Note that Triliteral written in the Latin script is case-insensitive, so this could also be written *Aktub*, *aKTuB* etc., with exactly the same meaning.)
 Words also have a *numeric* value when used as the object of arithmetic operations, with that value determined (naturally) by *gematria*, adding together the values of the letters (in the common abjadi sequence in Arabic, the Mispar Gadol system in Hebrew, and the Golden Dawn system in Latin) to produce a single value; so, again, *aktub* designates the *number* 1+20+9+6+2 = 38.
 
+As with any Forth, program execution begins with (every) stack empty and proceeds by reading one word at a time from the source file, parsing it (into root and stem), and executing it.
+As a general rule, each word operates on the stack designated by its root according to the operation designated by its stem; however there are some important exceptions.
