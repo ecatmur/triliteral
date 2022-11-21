@@ -61,6 +61,8 @@ I/O
 29 aKoTaB WRITE a word (0 writes a space)
 30 eKoTaB read a Unicode character
 31 oKoTaB write a Unicode character
+32 -K-TeB read a decimal integer (using (Latin) "Arabic" numerals)
+33 aK-TeB write a decimal integer
 
 In arithmetic, the result word is determined by greedy construction from the *end*, with as many vowels as necessary added at the start.
 For example, in Latin script a result of 543 would be written as *BALIK* (in Latin, all caps).
