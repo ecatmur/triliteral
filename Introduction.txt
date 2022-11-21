@@ -44,12 +44,13 @@ Arithmetic (integer, saturating)
 Logical (0 is false, 1 (*a*) is true)
 16 -K-TaB > greater than (i.t.o gematria)
 17 aK-TaB = equal (in gematria)
+18 oK-TaB ~ negate
 
 Control flow (all non-empty words are truthy)
 20 -KaTaB MARK
 21 aKaTaB CALL
-22 eKaTaB IF (i.e.: CALL 1st stack item if 2nd stack item is non-0)
-23 oKaTaB WHILE (2nd stack item is condition to CALL)
+22 eKaTaB IF (i.e.: CALL if top of home stack is non-0)
+23 oKaTaB WHILE (top of home stack; CALLed stack must push to continue)
 
 Text
 24 -KeTaB SPLIT top word on stack into letters (ignoring extra vowels)
