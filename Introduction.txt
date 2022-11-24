@@ -48,9 +48,9 @@ Logical (0 is false, 1 (*a*) is the value of true, but all non-empty words are t
 
 Control flow (MARK designates home stack)
 20 -KaTaB MARK
-21 aKaTaB CALL (pop & invoke 1 word from designated stack)
-22 eKaTaB IF (pop n, then pop & invoke n words from designated stack)
-23 oKaTaB WHILE (
+21 aKaTaB CALL invoke top word on designated stack
+22 eKaTaB IF pop a word n, then invoke top n words from designated stack
+23 oKaTaB WHILE repeat IF until n is 0
 
 Text
 24 -KeTaB SPLIT top word on stack into letters (ignoring extra vowels)
@@ -69,4 +69,3 @@ For example, in Latin script a result of 543 would be written as *OTHOG* (in Lat
 
 For control flow, MARK designates a "home" stack.
 For example, the program *eKTB aKTB a KoTB eKTB SaTaK aSTK a aKaTaB* performs the following: first, *aKTB a KoTB* is pushed to stack KTB; then STK is designated the home stack, then *a* is pushed to STK, then KTB is invoked (from the top) with home stack STK, meaning that references to KTB (the called stack) are replaced by STK (the home stack) in the invocation, so *a* is pushed to STK instead of KTB and addition is likewise performed on STK, the result of this program being to push *B* to STK.
-
