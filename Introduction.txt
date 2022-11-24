@@ -41,16 +41,16 @@ Arithmetic (integer, saturating)
 14 eKoT-B *
 15 oKoT-B / (integer division)
 
-Logical (0 is false, 1 (*a*) is true)
+Logical (0 is false, 1 (*a*) is the value of true, but all non-empty words are truthy)
 16 -K-TaB > greater than (i.t.o gematria)
 17 aK-TaB = equal (in gematria)
-18 oK-TaB ~ negate
+18 oK-TaB ~ logical negation (eqv. *`a`* `-`)
 
-Control flow (all non-empty words are truthy)
+Control flow (MARK designates home stack)
 20 -KaTaB MARK
-21 aKaTaB CALL
-22 eKaTaB IF (i.e.: CALL if top of home stack is non-0)
-23 oKaTaB WHILE (top of home stack; CALLed stack must push to continue)
+21 aKaTaB CALL (pop & invoke 1 word from designated stack)
+22 eKaTaB IF (pop n, then pop & invoke n words from designated stack)
+23 oKaTaB WHILE (
 
 Text
 24 -KeTaB SPLIT top word on stack into letters (ignoring extra vowels)
@@ -67,6 +67,6 @@ I/O
 In arithmetic, the result word is determined by greedy construction, vowels and consonants alternating.
 For example, in Latin script a result of 543 would be written as *OTHOG* (in Latin, all caps).
 
-For control flow, MARK serves two purposes: during execution, it designates a "home" stack; on the stack, it designates the point from which execution proceeds.
-For example, the program *eKTB KaTaB aKTB a KoTB eKTB SaTaK aSTK a aKaTaB* performs the following: first, *KaTaB aKTB a KoTB* is pushed to stack KTB; then STK is designated the home stack, then *a* is pushed to STK, then KTB is invoked (from the topmost KaTaB, if any) with home stack STK, meaning that references to KTB (the called stack) are replaced by STK (the home stack) in the invocation, so *a* is pushed to STK instead of KTB and addition is likewise performed on STK, the result of this program being to push *B* to STK.
+For control flow, MARK designates a "home" stack.
+For example, the program *eKTB aKTB a KoTB eKTB SaTaK aSTK a aKaTaB* performs the following: first, *aKTB a KoTB* is pushed to stack KTB; then STK is designated the home stack, then *a* is pushed to STK, then KTB is invoked (from the top) with home stack STK, meaning that references to KTB (the called stack) are replaced by STK (the home stack) in the invocation, so *a* is pushed to STK instead of KTB and addition is likewise performed on STK, the result of this program being to push *B* to STK.
 
