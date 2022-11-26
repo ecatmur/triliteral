@@ -48,7 +48,7 @@ Logical (0 is false, 1 (*a*) is the value of true, but all non-empty words are t
 
 Control flow (MARK designates home stack)
 20 -KaTaB MARK
-21 aKaTaB CALL invoke top word on designated stack
+21 aKaTaB CALL execute designated stack
 22 uKaTaB SKIP n words forwards
 23 iKaTaB HOP n words backwards
 
