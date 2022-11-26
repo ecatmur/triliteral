@@ -23,45 +23,45 @@ A table of stems follows. Any unused stem is a no-op.
 Literals
 0 -K-T-B No-op (may be used for commenting)
 1 aK-T-B ' push following word to stack (e.g. aKTB B pushes B to stack KTB)
-2 oK-T-B " pop n, then push n following words to stack
+2 uK-T-B " pop n, then push n following words to stack
 
 Stack
 4 -KaT-B DUP top stack item
 5 aKaT-B DROP top stack item
-6 oKaT-B SWAP 1st and 2nd stack items
+6 uKaT-B SWAP 1st and 2nd stack items
 7 iKaT-B ROT 3rd stack item to top
-8 -KoT-B PICK copy nth stack item to top (e.g. Z C T B -> Z C T Z)
-9 aKoT-B POKE copy 2nd stack item to nth
-10 oKoT-B PUSH pop top of home stack, push to designated stack
-11 iKoT-B PULL pop top of designated stack, push to home stack
+8 -KuT-B PICK copy nth stack item to top (e.g. Z C T B -> Z C T Z)
+9 aKuT-B POKE copy 2nd stack item to nth
+10 uKuT-B PUSH pop top of home stack, push to designated stack
+11 iKuT-B PULL pop top of designated stack, push to home stack
 
 Arithmetic (integer, saturating)
 12 -KiT-B +
 13 aKiT-B - (saturating at 0)
-14 oKiT-B *
+14 uKiT-B *
 15 iKiT-B / (integer division)
 
 Logical (0 is false, 1 (*a*) is the value of true, but all non-empty words are truthy)
 16 -K-TaB > greater than (i.t.o gematria)
 17 aK-TaB = equal (in gematria)
-18 oK-TaB ~ logical negation (eqv. *`a`* `-`)
+18 uK-TaB ~ logical negation (eqv. *`a`* `-`)
 
 Control flow (MARK designates home stack)
 20 -KaTaB MARK
 21 aKaTaB CALL invoke top word on designated stack
-22 oKaTaB SKIP n words forwards
+22 uKaTaB SKIP n words forwards
 23 iKaTaB HOP n words backwards
 
 Text
-24 -KoTaB SPLIT top word on stack into letters (ignoring extra vowels)
-25 aKoTaB SPLAT first letter of top 6 words on stack into a single word
+24 -KuTaB SPLIT top word on stack into letters (ignoring extra vowels)
+25 aKuTaB SPLAT first letter of top 6 words on stack into a single word
 
 I/O
-26 oKoTaB read a decimal integer (using (Latin) "Arabic" numerals)
-27 iKoTaB write a decimal integer
+26 uKuTaB read a decimal integer (using (Latin) "Arabic" numerals)
+27 iKuTaB write a decimal integer
 28 -KiTaB READ a word (spaces, punctuation discarded; 0 for EOF)
 29 aKiTaB WRITE a word (0 writes a space)
-30 oKiTaB read a Unicode character
+30 uKiTaB read a Unicode character
 31 iKiTaB write a Unicode character
 
 In arithmetic, the result word is determined by greedy construction, vowels and consonants alternating.
