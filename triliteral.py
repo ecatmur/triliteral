@@ -56,12 +56,8 @@ class Return:
 
 
 def parse(path):
-    words = []
-    letters_re = r'[^' + ''.join(k for k in script['values'].keys() if len(k) == 1) + r']+'
     with open(path, 'r') as f:
-        for line in f:
-            words += re.split(letters_re, line.strip(), flags=re.IGNORECASE)
-    return words
+        return [w for line in f for w in line.split()]
 
 
 def unpack(word):
@@ -104,7 +100,7 @@ def recode(word, to):
     out = ''
     sv, sw = script['values'], script['vowels']
     tv, tw = to['values'], to['vowels']
-    word = word.upper() + '_'
+    word = ''.join(c for c in word.upper() if c in sv) + '_'
     while word and word != '_':
         for i in 3, 2, 1:
             c = word[:i].title()
