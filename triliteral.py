@@ -5,10 +5,13 @@ import itertools
 import os.path
 import re
 import sys
+import threading
 
 
 args = argparse.Namespace()
-returns = []
+tl = threading.local()
+tids = itertools.count(1)
+stacks = collections.defaultdict(list)
 script = None
 LATIN = dict(
     values=dict(
@@ -37,6 +40,12 @@ HEBREW=dict(
     vowels={'': 0, 'א': 1, 'ה': 1, 'ו': 2, 'י': 3},
     ext='.טרל',
 )
+
+
+def trace(s):
+    if args.trace:
+        tid = getattr(threading.current_thread(), 'tid', 0)
+        print(f"[{tid}] {s}")
 
 
 @dataclasses.dataclass
@@ -112,7 +121,7 @@ def recode(word, to):
 
 
 def quot(stack):
-    r = returns[-1]
+    r = tl.returns[-1]
     word, r.pc = r.code[r.pc] if r.pc < len(r.code) else '', r.pc + 1
     stack.append(word)
 
@@ -122,8 +131,7 @@ def nquot(stack):
     n = gem(word)
     for _ in range(n):
         quot(stack)
-    if args.trace:
-        print(f"-- nquot {n=}: {stack[-n:]}")
+    trace(f"-- nquot {n=}: {stack[-n:]}")
 
 
 def dup(stack):
@@ -163,12 +171,12 @@ def poke(stack):
 
 
 def push(stack):
-    home = returns[-1].home
+    home = tl.returns[-1].home
     stack.append(home.pop() if home else '')
 
 
 def pull(stack):
-    home = returns[-1].home
+    home = tl.returns[-1].home
     home.append(stack.pop() if stack else '')
 
 
@@ -210,35 +218,48 @@ def eq(stack):
     stack.append(degem(1 if gem(w) == gem(x) else 0))
 
 
-def not_(stack):
-    w = stack.pop() if stack else ''
-    stack.append(degem(1 if gem(w) == 0 else 0))
+def fork(stack):
+    home = tl.returns[-1].home
+    def target():
+        trace(f"-- fork {t.tid=}")
+        tl.returns = [Return(home, stack, 0)]
+        eval_()
+    t = threading.Thread(target=target)
+    t.tid = next(tids)
+    t.start()
+    stack.append(degem(t.tid))
+
+
+def join(stack):
+    i = stack.pop() if stack else ''
+    t = next((t for t in threading.enumerate() if getattr(t, 'tid', 0) == gem(i)), None)
+    trace(f"-- join {i=} {t=}")
+    if t:
+        t.join()
 
 
 def mark(stack):
-    returns[-1].home = stack
+    tl.returns[-1].home = stack
 
 
 def call(stack):
-    returns.append(Return(returns[-1].home, stack, 0))
+    tl.returns.append(Return(tl.returns[-1].home, stack, 0))
 
 
 def skip(stack):
     word = stack.pop() if stack else ''
     n = gem(word)
-    r = returns[-1]
+    r = tl.returns[-1]
     r.pc += n
-    if args.trace:
-        print(f"-- skip {n=}: {r.pc=}")
+    trace(f"-- skip {n=}: {r.pc=}")
 
 
 def hop(stack):
     word = stack.pop() if stack else ''
     n = gem(word)
-    r = returns[-1]
+    r = tl.returns[-1]
     r.pc = max(0, r.pc - n)
-    if args.trace:
-        print(f"-- hop {n=}: {r.pc=}")
+    trace(f"-- hop {n=}: {r.pc=}")
 
 
 def split(stack):
@@ -265,7 +286,7 @@ def rint(stack):
 def wint(stack):
     word = stack.pop() if stack else ''
     n = gem(word)
-    print(n)
+    print(n, flush=True)
 
 
 def rword(stack):
@@ -275,7 +296,7 @@ def rword(stack):
 
 def wword(stack):
     word = stack.pop() if stack else ''
-    print(word)
+    print(word, flush=True)
 
 
 def rchar(stack):
@@ -287,6 +308,7 @@ def wchar(stack):
     word = stack.pop() if stack else ''
     n = gem(word)
     sys.stdout.write(chr(n))
+    sys.stdout.flush()
 
 
 OPS = [
@@ -294,7 +316,7 @@ OPS = [
     dup, drop, swap, rot,
     pick, poke, push, pull,
     add, sub, mult, div,
-    gt, eq, not_, None,
+    gt, eq, fork, join,
     mark, call, skip, hop,
     split, splat, rint, wint,
     rword, wword, rchar, wchar,
@@ -312,12 +334,15 @@ def run(path):
         for word in program:
             print(recode(word, to), file=out)
         return
-    stacks = collections.defaultdict(list)
-    returns.append(Return(program, program, 0))
-    while returns:
-        r = returns[-1]
+    tl.returns = [Return(program, program, 0)]
+    eval_()
+
+
+def eval_():
+    while tl.returns:
+        r = tl.returns[-1]
         if r.pc >= len(r.code):
-            returns.pop()
+            tl.returns.pop()
         else:
             word, r.pc = r.code[r.pc], r.pc + 1
             root, stem = unpack(word)
@@ -325,8 +350,7 @@ def run(path):
             stack = stacks[root]
             if stack == r.code:
                 root, stack = None, r.home
-            if args.trace:
-                print(f"{word=}: {None if op is None else op.__name__}({root}={stack})")
+            trace(f"{word=}: {None if op is None else op.__name__}({root}={stack})")
             if op is not None:
                 op(stack)
 

@@ -12,7 +12,7 @@ Words also have a *numeric* value when used as the object of arithmetic operatio
 Words may have more or fewer than 3 consonants, subject to implementation limits.
 Consecutive long vowels are permitted but only the first in each position contribute to the stem; any following contribute only to gematria.
 For example, *gematria* is parsed as *-GeMaT(ria)* i.e. root *GMT* and stem *-ea*, where *-* designates an empty position.
-The observant will note that this means that any text (for example, this document) can be parsed as a Triliteral program, and that any positive number can be entered; however, Triliteral implementations are required only to support values up to the largest that can be entered without repeated long vowels; for example, *ipitz* in Latin script (gematria 1000); likewise יציציץ (1110) in Hebrew and ﻱﻍﻱﻍﻱﻍ (3030) in Arabic.
+The observant will note that this means that any text (for example, this document) can be parsed as a Triliteral program, and that any positive number can be entered; however, Triliteral implementations are required only to support values up to the largest that can be entered without repeated long vowels; for example, *ithithitz* in Latin script (gematria 1630); likewise יציציץ (1110) in Hebrew and ﻱﻍﻱﻍﻱﻍ (3030) in Arabic.
 
 As with any Forth, program execution begins with (every) data stack empty and proceeds by reading one word at a time from the source file, parsing it (into root and stem), and executing it.
 Data elements are Triliteral words, or the empty word (reading from an empty stack produces the empty word, so DUPing an empty stack is an easy way to produce a zero).
@@ -44,11 +44,12 @@ Arithmetic (integer, saturating)
 Logical (0 is false, 1 (*a*) is the value of true, but all non-empty words are truthy)
 16 -K-TaB > greater than (i.t.o gematria)
 17 aK-TaB = equal (in gematria)
-18 uK-TaB ~ logical negation (eqv. *`a`* `-`)
 
 Control flow (MARK designates home stack)
-20 -KaTaB MARK
-21 aKaTaB CALL execute designated stack
+18 uK-TaB FORK execute designated stack with home stack, pushing thread id to designated stack
+18 iK-TaB JOIN pop designated stack, wait for thread id to finish
+20 -KaTaB MARK designate home stack
+21 aKaTaB CALL execute designated stack with home stack
 22 uKaTaB SKIP n words forwards
 23 iKaTaB HOP n words backwards
 
@@ -65,7 +66,7 @@ I/O
 31 iKiTaB write a Unicode character
 
 In arithmetic, the result word is determined by greedy construction, vowels and consonants alternating.
-For example, in Latin script a result of 543 would be written as *OTHOG* (in Latin, all caps).
+For example, in Latin script a result of 1024 would be written as *DKQTz*.
 
 For control flow, MARK designates a "home" stack.
 For example, the program *eKTB aKTB a KoTB eKTB SaTaK aSTK a aKaTaB* performs the following: first, *aKTB a KoTB* is pushed to stack KTB; then STK is designated the home stack, then *a* is pushed to STK, then KTB is invoked (from the top) with home stack STK, meaning that references to KTB (the called stack) are replaced by STK (the home stack) in the invocation, so *a* is pushed to STK instead of KTB and addition is likewise performed on STK, the result of this program being to push *B* to STK.
