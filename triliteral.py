@@ -323,16 +323,31 @@ OPS = [
 ] + [None, None, None, None] * 8
 
 
+def recode_p(program, base):
+    to = {'arabic': ARABIC, 'hebrew': HEBREW, 'latin': LATIN}[args.recode]
+    with open(base + to['ext'], 'w') as out:
+        line = []
+        for word in program:
+            w = recode(word, to)
+            if len(' '.join(line + [w])) <= 120:
+                line.append(w)
+                continue
+            ww, line = line, [w]
+            x = 120 - len(' '.join(ww))
+            q, r = divmod(x, len(ww) - 1)
+            for i, w in enumerate(ww):
+                out.write(' ' * (0 if i == 0 else q + 2 if i <= (r + 1) else q + 1) + w)
+            out.write('\n')
+        out.write(' '.join(line) + '\n')
+ 
+
 def run(path):
     global script
     base, ext = os.path.splitext(path)
     script = {s['ext']: s for s in (ARABIC, HEBREW, LATIN)}[ext]
     program = parse(path)
     if args.recode:
-        to = {'arabic': ARABIC, 'hebrew': HEBREW, 'latin': LATIN}[args.recode]
-        out = open(base + to['ext'], 'w')
-        for word in program:
-            print(recode(word, to), file=out)
+        recode_p(program, base)
         return
     tl.returns = [Return(program, program, 0)]
     eval_()
