@@ -20,7 +20,7 @@ LATIN = dict(
         Q=100, R=200, Sh=300, Th=400, K_=500, M_=600, N_=700, P_=800, Ph_=800, Ts_=900, Tz_=900,
     ),
     vowels={'': 0, 'A': 1, 'E': 1, 'U': 2, 'I': 3},
-    ext='.trl',
+    ext='.tlt',
 )
 ARABIC=dict(
     values=dict(
@@ -29,7 +29,7 @@ ARABIC=dict(
         ق=100, ر=200, ش=300, ت=400, ث=500, خ=600, ذ=700, ض=800, ظ=900, غ=1000,
     ),
     vowels={'': 0, 'ا': 1, 'و': 2, 'ي': 3},
-    ext='.طرل',
+    ext='.ثلث',
 )
 HEBREW=dict(
     values=dict(
@@ -38,7 +38,7 @@ HEBREW=dict(
         ק=100, ר=200, ש=300, ת=400, ך=500, ם=600, ן=700, ף=800, ץ=900,
     ),
     vowels={'': 0, 'א': 1, 'ה': 1, 'ו': 2, 'י': 3},
-    ext='.טרל',
+    ext='.תלת',
 )
 
 
@@ -339,7 +339,7 @@ def recode_p(program, base):
                 out.write(' ' * (0 if i == 0 else q + 2 if i <= (r + 1) else q + 1) + w)
             out.write('\n')
         out.write(' '.join(line) + '\n')
- 
+
 
 def run(path):
     global script

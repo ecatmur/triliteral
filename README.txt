@@ -1,5 +1,5 @@
-Triliteral is a literate, polyglossal, esoteric, homoiconic, concatenative, concurrent, Turing-complete, stack-oriented language based on FALSE and inspired by the *triliteral root* construction common to Semitic languages.
-Triliteral programs can be written in the Arabic, Hebrew or (with some loss of fidelity) Latin scripts, though only one at a time; the script used is determined by the file extension: .طرل, .טרל or .trl.
+Triliteral (Arabic: <ثلاثي>, Hebrew: <תלת>) is a literate, polyglossal, esoteric, homoiconic, concatenative, concurrent, Turing-complete, stack-oriented language based on FALSE and inspired by the *triliteral root* construction common to Semitic languages.
+Triliteral programs can be written in the Arabic, Hebrew or (with some loss of fidelity) Latin scripts, though only one at a time; the script used is determined by the file extension: .ثلث, .תלת or .trl.
 
 A Triliteral program is a sequence of *words*, separated by whitespace and/or punctuation, where each word is derived from a (usually tri-)consonantal *root* designating a *stack*, modified by a vowel *stem* designating an *operation*, each consonant having a preceding vowel.
 The number of available consonants (and thus the number of stacks) depends on the script used, with Triliteral written in Arabic having 25 consonants (hamza not considered a letter) available, Hebrew 18 and Latin 22; in the Semitic scripts these are the letters other than the *matres lectrionis*, whereas in Latin they are the letters other than certain vowels.
