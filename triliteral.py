@@ -5,13 +5,10 @@ import itertools
 import os.path
 import re
 import sys
-import threading
 
 
 args = argparse.Namespace()
-tl = threading.local()
-tids = itertools.count(1)
-stacks = collections.defaultdict(list)
+variables = collections.defaultdict(int)
 script = None
 LATIN = dict(
     values=dict(
@@ -44,15 +41,7 @@ HEBREW=dict(
 
 def trace(s):
     if args.trace:
-        tid = getattr(threading.current_thread(), 'tid', 0)
-        print(f"[{tid}] {s}")
-
-
-@dataclasses.dataclass
-class Return:
-    home: list
-    code: list
-    pc: int
+        print(s)
 
 
 def parse(path):
@@ -63,7 +52,7 @@ def parse(path):
 def unpack(word):
     vowels = script['vowels']
     vowels_re = r'([^' + ''.join(vowels.keys()) + r'])'
-    parts = re.split(vowels_re, word.upper())[:6]
+    parts = re.split(vowels_re, word.upper())
     root = "".join(parts[1::2])
     stem = int("".join(str(vowels.get(c[:1], c[:1])) for c in parts[4::-2]), 4)
     return root, stem
@@ -83,17 +72,21 @@ def gem(word):
     return acc
 
 
-def degem(n, scr=None):
-    if scr is None:
-        scr = script
+def degem(n):
     sv, sw = script['values'], script['vowels']
     vowels, consonants = [], []
-    while n > 0:
+    m = n
+    while m > 0:
         for c, v in reversed(sv.items()):
-            if (c[-1] != '_' or not consonants) and (c + '_' not in sv or consonants) and v <= n:
-                n -= v
+            if (c[-1] != '_' or not consonants) and (c + '_' not in sv or consonants) and v <= m:
+                m -= v
                 (vowels if c in sw else consonants)[:0] = (c[:-1] if c[-1] == '_' else c)
-    return ''.join(itertools.chain.from_iterable(itertools.zip_longest(vowels, consonants, fillvalue='')))
+                break
+    r = ''.join(itertools.chain.from_iterable(itertools.zip_longest(vowels, consonants, fillvalue='')))
+    if script is LATIN:
+        r = r.replace('TSh', 'CASh')
+    assert gem(r) == n, (n, r, gem(r))
+    return r
 
 
 def recode(word, to):
@@ -116,205 +109,216 @@ def recode(word, to):
     return out
 
 
-def quot(stack):
-    r = tl.returns[-1]
-    word, r.pc = r.code[r.pc] if r.pc < len(r.code) else '', r.pc + 1
-    stack.append(word)
+class State:
+    def __init__(self, program):
+        self.code = program
+        self.wv = ''
+        self.root = ''
+        self.pc = 0
+        self.vs = collections.defaultdict(str)
+
+    def eval(self):
+        while self.pc < len(self.code):
+            word, self.pc = self.code[self.pc], self.pc + 1
+            root, stem = unpack(word)
+            op = OPS[stem]
+            trace(f"{word=}: {None if op is None else op.__name__}({root}={self.vs[root]})")
+            if op is not None:
+                self.root = root
+                op(self)
+            if op is not with_:
+                self.wv = ''
+
+    def get(self):
+        return self.vs[self.root]
+
+    def get2(self):
+        return self.vs[self.wv or self.root], self.vs[self.root]
+
+    def set(self, x):
+        self.vs[self.root] = x
 
 
-def nquot(stack):
-    word = stack.pop() if stack else ''
-    n = gem(word)
-    for _ in range(n):
-        quot(stack)
-    trace(f"-- nquot {n=}: {stack[-n:]}")
+def quot(state):
+    state.set(state.code[state.pc])
+    state.pc += 1
 
 
-def dup(stack):
-    stack.append(stack[-1] if stack else '')
+def clr(state):
+    state.set('')
 
 
-def drop(stack):
-    if stack:
-        stack.pop()
+def with_(state):
+    state.wv = state.root
 
 
-def swap(stack):
-    pq = stack[-2:]
-    pq[:0] = [''] * (2 - len(pq))
-    p, q = pq
-    stack[-2:] = [q, p]
+def load(state):
+    ww, _ = state.get2()
+    state.set(ww)
 
 
-def rot(stack):
-    pqr = stack[-3:]
-    pqr[:0] = [''] * (3 - len(pqr))
-    p, q, r = pqr
-    stack[-3:] = [q, r, p]
+def store(state):
+    state.vs[state.wv or state.root] = state.get()
 
 
-def pick(stack):
-    word = stack.pop() if stack else ''
-    n = gem(word)
-    stack.append(word if n == 0 else stack[-n] if len(stack) >= n else '')
+def swap(state):
+    state.vs[root], state.vs[state.wv or state.root] = state.get2()
 
 
-def poke(stack):
-    word = stack.pop() if stack else ''
-    n = gem(word)
-    if stack:
-        stack[-n] = stack[-1]
-
-
-def push(stack):
-    home = tl.returns[-1].home
-    stack.append(home.pop() if home else '')
-
-
-def pull(stack):
-    home = tl.returns[-1].home
-    home.append(stack.pop() if stack else '')
-
-
-def add(stack):
-    w = stack.pop() if stack else ''
-    x = stack.pop() if stack else ''
-    stack.append(degem(gem(w) + gem(x)))
-
-
-def sub(stack):
-    w = stack.pop() if stack else ''
-    x = stack.pop() if stack else ''
-    y = degem(gem(w) - gem(x))
-    assert gem(y) == max(0, gem(w) - gem(x)), (w, x, y)
-    stack.append(y)
-
-
-def mult(stack):
-    w = stack.pop() if stack else ''
-    x = stack.pop() if stack else ''
-    stack.append(degem(gem(w) * gem(x)))
-
-
-def div(stack):
-    w = stack.pop() if stack else ''
-    x = stack.pop() if stack else ''
-    stack.append(degem(gem(w) // gem(x)))
-
-
-def gt(stack):
-    w = stack.pop() if stack else ''
-    x = stack.pop() if stack else ''
-    stack.append(degem(1 if gem(w) > gem(x) else 0))
-
-
-def eq(stack):
-    w = stack.pop() if stack else ''
-    x = stack.pop() if stack else ''
-    stack.append(degem(1 if gem(w) == gem(x) else 0))
-
-
-def fork(stack):
-    home = tl.returns[-1].home
-    def target():
-        trace(f"-- fork {t.tid=}")
-        tl.returns = [Return(home, stack, 0)]
-        eval_()
-    t = threading.Thread(target=target)
-    t.tid = next(tids)
-    t.start()
-    stack.append(degem(t.tid))
-
-
-def join(stack):
-    i = stack.pop() if stack else ''
-    t = next((t for t in threading.enumerate() if getattr(t, 'tid', 0) == gem(i)), None)
-    trace(f"-- join {i=} {t=}")
-    if t:
-        t.join()
-
-
-def mark(stack):
-    tl.returns[-1].home = stack
-
-
-def call(stack):
-    tl.returns.append(Return(tl.returns[-1].home, stack, 0))
-
-
-def skip(stack):
-    word = stack.pop() if stack else ''
-    n = gem(word)
-    r = tl.returns[-1]
-    r.pc += n
-    trace(f"-- skip {n=}: {r.pc=}")
-
-
-def hop(stack):
-    word = stack.pop() if stack else ''
-    n = gem(word)
-    r = tl.returns[-1]
-    r.pc = max(0, r.pc - n)
-    trace(f"-- hop {n=}: {r.pc=}")
-
-
-def split(stack):
-    word = stack.pop() if stack else ''
-    stack.extend(word)
-    stack.append(degem(len(word)))
-
-
-def splat(stack):
-    word = stack.pop() if stack else ''
-    n = gem(word)
-    if n == 0:
-        cc = []
+def cat(state):
+    ww, cw = state.get2()
+    if script is LATIN and cw[-1:].upper() == 'T' and ww[:1].upper() in {'S', 'Z'}:
+        y = cw[:-1] + 'CA' + ww
     else:
-        cc, stack[-n:] = stack[-n:], []
-    stack.append(''.join(c[:1] for c in cc))
+        y = cw + ww
+    assert gem(y) == gem(cw) + gem(ww), (cw, ww)
+    state.set(y)
 
 
-def rint(stack):
+def sub(state):
+    ww, cw = state.get2()
+    state.set(degem(max(0, gem(cw) - gem(ww))))
+
+
+def mul(state):
+    ww, cw = state.get2()
+    state.set(degem(gem(cw) * gem(ww)))
+
+
+def div(state):
+    ww, cw = state.get2()
+    state.set(degem(gem(cw) // gem(ww)))
+
+
+def mod(state):
+    ww, cw = state.get2()
+    state.set(degem(gem(cw) % gem(ww)))
+
+
+def hop(state):
+    word = state.get()
+    n = gem(word)
+    state.pc = max(0, state.pc - n)
+    trace(f"-- hop {n=}: {state.pc=}")
+
+
+def skip(state):
+    word = state.get()
+    n = gem(word)
+    state.pc += n
+    trace(f"-- skip {n=}: {state.pc=}")
+
+
+def jump(state):
+    word = state.get()
+    n = gem(word)
+    state.pc = n
+    trace(f"-- jump {n=}")
+
+
+def land(state):
+    state.set(degem(state.pc))
+
+
+def gt(state):
+    ww, cw = state.get2()
+    state.set(degem(1 if gem(cw) > gem(ww) else 0))
+
+
+def lt(state):
+    ww, cw = state.get2()
+    state.set(degem(1 if gem(cw) < gem(ww) else 0))
+
+
+def eq(state):
+    ww, cw = state.get2()
+    state.set(degem(1 if gem(cw) == gem(ww) else 0))
+
+
+def neq(state):
+    ww, cw = state.get2()
+    state.set(degem(1 if gem(cw) != gem(ww) else 0))
+
+
+def inc(state):
+    cw = state.get()
+    state.set(degem(gem(cw) + 1))
+
+
+def dec(state):
+    cw = state.get()
+    state.set(degem(max(0, gem(state.get()) - 1)))
+
+
+def not_(state):
+    state.set(degem(0 if state.get() else 1))
+
+
+def and_(state):
+    ww, cw = state.get2()
+    state.set(degem(1 if cw and ww else 0))
+
+
+def peek(state):
+    word = state.get()
+    n = gem(word)
+    trace(f"peek {n=}")
+    state.set(state.code[n] if n < len(state.code) else '')
+
+
+def poke(state):
+    ww, cw = state.get2()
+    n = gem(ww)
+    if n < len(state.code):
+        trace(f"poke {n=}: {state.code[n]}->{cw}")
+        state.code[n] = cw
+        state.set(degem(1))
+    else:
+        trace(f"failed poke {n=}")
+        state.set(degem(0))
+
+
+def rint(state):
     n = int(input())
-    stack.append(degem(n))
+    state.set(degem(n))
 
 
-def wint(stack):
-    word = stack.pop() if stack else ''
+def wint(state):
+    word = state.get()
     n = gem(word)
     print(n, flush=True)
 
 
-def rword(stack):
+def rword(state):
     word = input()
-    stack.append(word)
+    state.set(word)
 
 
-def wword(stack):
-    word = stack.pop() if stack else ''
+def wword(state):
+    word = state.get()
     print(word, flush=True)
 
 
-def rchar(stack):
+def rchar(state):
     n = sys.stdin.read(1)
-    stack.append(degem(ord(n) if n else 0))
+    state.set(degem(ord(n) if n else 0))
 
 
-def wchar(stack):
-    word = stack.pop() if stack else ''
+def wchar(state):
+    word = state.get()
     n = gem(word)
     sys.stdout.write(chr(n))
     sys.stdout.flush()
 
 
 OPS = [
-    None, quot, nquot, None,
-    dup, drop, swap, rot,
-    pick, poke, push, pull,
-    add, sub, mult, div,
-    gt, eq, fork, join,
-    mark, call, skip, hop,
-    split, splat, rint, wint,
+    None, quot, clr, with_,
+    load, store, swap, cat,
+    sub, mul, div, mod,
+    hop, skip, jump, land,
+    gt, lt, eq, neq,
+    inc, dec, not_, and_,
+    peek, poke, rint, wint,
     rword, wword, rchar, wchar,
 ] + [None, None, None, None] * 8
 
@@ -345,25 +349,7 @@ def run(path):
     if args.recode:
         recode_p(program, base)
         return
-    tl.returns = [Return(program, program, 0)]
-    eval_()
-
-
-def eval_():
-    while tl.returns:
-        r = tl.returns[-1]
-        if r.pc >= len(r.code):
-            tl.returns.pop()
-        else:
-            word, r.pc = r.code[r.pc], r.pc + 1
-            root, stem = unpack(word)
-            op = OPS[stem]
-            stack = stacks[root]
-            if stack == r.code:
-                root, stack = None, r.home
-            trace(f"{word=}: {None if op is None else op.__name__}({root}={stack})")
-            if op is not None:
-                op(stack)
+    State(program).eval()
 
 
 def main():
